@@ -44,7 +44,8 @@ class Telescope:
             'v0': 400 * u.MHz,
             'v1': 800 * u.MHz,            
             'Dx': 20 * u.m,
-            'Dy': 0.915 * u.m,  # Emprirical value to have a beam of ~110 deg
+            'Dy': 0.87 * u.m,  # Emprirical value to have a beam of ~100 deg
+            #'D': 8.4474307*u.m
         },
         'chord': {  # from https://ui.adsabs.harvard.edu/abs/2019clrp.2020...28V/abstract
             'sefd': 9 * u.Jy,
@@ -337,9 +338,9 @@ def get_beam_response(
         # Random angles
         angle = rng.uniform(
             low=0,
-            high=hwfn.to(u.rad).value,
+            high=hwfn.to(u.rad).value**2,
             size=number_of_simulated_frbs
-        ) * u.rad
+        )**0.5 * u.rad
         # Normalized power
         x = np.pi * np.sin(angle) * diameter / wavelength * np.sqrt(efficiency)
         power = (2 * j1(x) / x)**2
@@ -372,7 +373,7 @@ def get_beam_response(
             )**2
         )
         # Simulated sky fraction
-        sky_fraction = (hwfn_x * hwfn_y / np.pi / u.steradian).value
+        sky_fraction = (hwfn_x * hwfn_y / 4 / np.pi / u.steradian).value
 
     return sky_fraction, power
 
@@ -452,7 +453,7 @@ def run_simulation(
     
     # Telescope parameters
     telescope = Telescope(name=telescope_name)
-    bw_telescope = telescope.bandwidth()
+    bw_telescope = 400 * u.MHz  # Subband search on constant bandwidth  #telescope.bandwidth()
     sefd = telescope.sefd()
     
     # FRB widths
@@ -495,6 +496,7 @@ def run_simulation(
     frb_E_nu = frb_E / u.GHz
     
     # Beam response
+    #!!! To be corrected: now, the FoV is the same at all frequencies
     sky_fraction, beam_response = get_beam_response(telescope)
     
     # FRB redshifts
@@ -553,4 +555,4 @@ def run_simulation(
     print(f'or 1 FRB detected every {1/(frb_detection_rate).to(1/u.year).value:.2f} years.')
     return frb_detection_rate
 
-frb_detection_rate = run_simulation(telescope_name='chime', simulate_lensed_frbs = False)
+frb_detection_rate = run_simulation(telescope_name='chord', simulate_lensed_frbs = False)
